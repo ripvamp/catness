@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-UNSPLASH_ACCESS_KEY = "iwWhhVfP_YYKFyW0ZZcU_U4MOK7Kv4bfGaTXqqGPyvI"
+UNSPLASH_ACCESS_KEY = "WTF"
 SEARCH_QUERY = "bumblebee"
 
 async def search_images():
