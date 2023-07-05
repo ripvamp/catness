@@ -2,7 +2,6 @@ from discord import app_commands
 from discord.ext import commands
 from discord import ui
 
-import aiosqlite
 import discord
 
 from utils.http import HTTP
@@ -78,9 +77,9 @@ async def mainPage(user):
 
 class Steam(commands.Cog):
 
-	def __init__(self, ce):
+	def __init__(self, bot):
 		super().__init__()
-		self.ce = ce
+		self.bot = bot
 
 	@app_commands.command(name="steam", description="View steam profiles :)")
 	@app_commands.describe(user="The user's vanity, steam id or discord mention if they linked their account",
@@ -96,7 +95,7 @@ class Steam(commands.Cog):
 				if user_id == interaction.user.id:
 					g = "You haven't"
 			try:
-				social_data = await Data.load_db(table="profiles", value=user_id)
+				social_data = await Data.load_db(table="profiles", id=user_id)
 				if social_data['steam'] is None:
 					raise Exception
 				user = social_data['steam']
@@ -107,8 +106,8 @@ class Steam(commands.Cog):
 			embed = await mainPage(user)
 			await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
 		except Exception as e:
-			await interaction.response.send_message(f"I couldn't find the user. Did you use the vanity url of the user? {e}", ephemeral=True)
+			await interaction.response.send_message(f"I couldn't find the user. Did you use the vanity url of the user?", ephemeral=True)
 
 
-async def setup(ce):
-	await ce.add_cog(Steam(ce))
+async def setup(bot):
+	await bot.add_cog(Steam(bot))
