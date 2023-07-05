@@ -12,8 +12,8 @@ statuscodes = [
 
 
 class ErrorCat(commands.Cog):
-    def __init__(self, ce):
-        self.ce = ce
+    def __init__(self, bot):
+        self.bot = bot
 
     @app_commands.command(name='errorcat', description='sends http cats from http.cat')
     @app_commands.describe(number='The status code')
@@ -32,5 +32,5 @@ class ErrorCat(commands.Cog):
         await interaction.response.send_message(embed=embed)
 
 
-async def setup(ce):
-    await ce.add_cog(ErrorCat(ce))
+async def setup(bot):
+    await bot.add_cog(ErrorCat(bot))
