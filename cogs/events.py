@@ -5,6 +5,7 @@ import pathlib
 import zipfile
 import datetime
 import aiosqlite
+import time
 
 from typing import TYPE_CHECKING
 
@@ -18,6 +19,16 @@ if TYPE_CHECKING:
 
 from data import config, DATABASE_FILE
 
+start_time = time.time()
+
+last_executed = time.time()
+
+def assert_cooldown():
+    global last_executed  # you can use a class for this if you wanted
+    if last_executed + 4.0 < time.time():
+        last_executed = time.time()
+        return True
+    return False
 
 async def switch_avatar(self):
 	with zipfile.ZipFile("./mfw.zip") as zip_file:
@@ -88,11 +99,11 @@ class Events(commands.Cog):
 		if not self.presences.is_running():
 			self.presences.start()
 
-		if not self.cakeloop.is_running():
-			await self.cakeloop.start()
-
 		if not self.r_avatar.is_running():
 			self.r_avatar.start()
+
+		if not self.cakeloop.is_running():
+			await self.cakeloop.start()
 
 	async def format_date(self, date: str):
 		date, consd = date.split(":")
@@ -108,12 +119,12 @@ class Events(commands.Cog):
 			"consd": consd
 		}
 
-	@tasks.loop(hours=12)
+	@tasks.loop(hours=24)
 	async def cakeloop(self):
 		date = datetime.datetime.today().strftime('%d/%m/%Y')
 		day, month, year = date.split("/")
 		async with aiosqlite.connect(DATABASE_FILE) as conn:
-			async with conn.execute("SELECT user_id, cake, follow_list FROM profiles") as cursor:
+			async with conn.execute("SELECT id, cake, follow_list FROM profiles") as cursor:
 				rows = await cursor.fetchall()
 			for row in rows:
 				user_id = row[0]
@@ -128,7 +139,7 @@ class Events(commands.Cog):
 					for i in eval(row[2]):
 						notif_user = await self.bot.fetch_user(i)
 						embed = discord.Embed(title=str(cake_user))
-						embed.set_thumbnail(url=cake_user.avatar.url)
+						embed.set_thumbnail(url=cake_user.display_avatar.url)
 						c = [
 							"🎉 Happy Birthday, {user}! Let's party!",
 							"🎂 It's {user}'s birthday, Wish them a wonderful day!",
@@ -149,6 +160,10 @@ class Events(commands.Cog):
 	async def on_message(self, message):
 		if "MessageType.premium_guild" in str(message.type):
 			await message.add_reaction("❤")
+
+		if not assert_cooldown():
+			return
+
 		if 'oh' in message.content and message.author.bot is False:
 			await message.channel.send('oh')
 
@@ -161,5 +176,5 @@ class Events(commands.Cog):
 		await inter.response.send_message("Switched!! :)", ephemeral=True)
 
 
-async def setup(ce):
-	await ce.add_cog(Events(ce))
+async def setup(bot):
+	await bot.add_cog(Events(bot))
