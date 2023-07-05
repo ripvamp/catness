@@ -11,10 +11,11 @@ class Menu(discord.ui.View):
 
 
 class Spotify(commands.Cog):
-    def __init__(self, ce: commands.Bot):
-        self.ce = ce
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
 
     @app_commands.command(name='spotify', description='View the user\'s spotify activity')
+    @app_commands.guild_only()
     @app_commands.describe(member='The activity user')
     async def spotify(self, interaction, member: discord.Member = None):
 
@@ -38,9 +39,9 @@ class Spotify(commands.Cog):
             embed.set_thumbnail(url=song.album_cover_url)
             embed.set_footer(text=f'track id: {song.track_id}')
             embed.set_author(
-                name=f'{member.display_name}  •  Now Playing', icon_url=member.avatar.url)
+                name=f'{member.display_name}  •  Now Playing', icon_url=member.display_avatar.url)
             await interaction.response.send_message(embed=embed, view=view)
 
 
-async def setup(ce: commands.Bot):
-    await ce.add_cog(Spotify(ce))
+async def setup(bot: commands.Bot):
+    await bot.add_cog(Spotify(bot))
