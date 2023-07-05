@@ -8,6 +8,7 @@ parts
 src/*.egg-info
 lib
 lib64
-/data/.old
-/data/data.db
+/config.toml
+/cogs/.old/
+/data/dataa.db
 /data/config.toml
