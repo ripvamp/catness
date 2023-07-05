@@ -2,9 +2,10 @@ from discord import app_commands
 from discord.ext import commands
 from discord import ui
 
+import asyncio
 import discord
 
-from data import config, Data
+from data import config, Data, icons
 from utils.http import HTTP
 
 LASTFM = config["LASTFM"]
@@ -46,7 +47,7 @@ async def playingStatus(user):
 					break
 				elif i == "date":
 					status = ""
-					date = f'at <t:{now_playing["recenttracks"]["track"][0]["date"]["uts"]}:R>'
+					date = f'on <t:{now_playing["recenttracks"]["track"][0]["date"]["uts"]}:f>'
 					break
 			embed.set_thumbnail(
 				url=now_playing["recenttracks"]["track"][0]["image"][2]["#text"])
@@ -130,52 +131,67 @@ async def friendsTab(user):
 			else:
 				value = i["realname"]
 			if i["subscriber"] == "1":
-				embed.add_field(name=f'🔹• {name}', value=f'{value}')
+				embed.add_field(name=f'🔹• {i["name"]}', value=f'{i["realname"] if i["realname"] != "" else "*No real name set*"}')
 			else:
 				embed.add_field(
-					name=f'{i["name"]}', value=f'{i["realname"]}')
+					name=f'{i["name"]}', value=f'{i["realname"] if i["realname"] != "" else "*No real name set*"}')
 			j += 1
 	embed.color = 0xe4141e
 	return embed
 
-
 class fmProfile(ui.View):
-	def __init__(self, user, author):
+	def __init__(self, user, author, timeout=180):
 		super().__init__()
 		self.value = None
 		self.user = user
 		self.author = author
+		self.timeout=180
+		self.selection = "Main Menu"
 
-	async def disable_all(self):
+		for child in self.children:
+			child.disabled = True if child.label == self.selection else False
+
+	async def disable_all(self, msg="Timed out...", view=None):
 		for i in self.children:
 			i.disabled = True
-		await self.msg.edit(view=self)
+		await self.msg.edit(content=msg, embed=None, view=view)
 
 	async def on_timeout(self):
 		await self.disable_all()
 
 	@ui.button(label='Now Playing', style=discord.ButtonStyle.gray)
 	async def playing(self, interaction: discord.Integration, button: ui.Button):
+		self.selection = button.label
+		for child in self.children:
+			child.disabled = True if child.label == self.selection else False
 		embed = await playingStatus(self.user)
-		await interaction.response.edit_message(embed=embed)
+		await interaction.response.edit_message(embed=embed, view=self)
 
 	@ui.button(label='Main Menu', style=discord.ButtonStyle.blurple)
 	async def main(self, interaction: discord.Interaction, button: ui.Button):
+		self.selection = button.label
+		for child in self.children:
+			child.disabled = True if child.label == self.selection else False
 		embed = await overview(self.user)
-		await interaction.response.edit_message(embed=embed)
+		await interaction.response.edit_message(embed=embed, view=self)
 
 	@ui.button(label='Friends', style=discord.ButtonStyle.gray)
 	async def friends(self, interaction, button):
+		self.selection = button.label
+		for child in self.children:
+			child.disabled = True if child.label == self.selection else False
 		embed = await friendsTab(self.user)
-		await interaction.response.edit_message(embed=embed)
+		await interaction.response.edit_message(embed=embed, view=self)
 
-	@ui.button(label='Exit', style=discord.ButtonStyle.red)
-	async def quit(self, interaction: discord.Interaction, button: ui.Button):
+	@ui.button(emoji=icons.close, style=discord.ButtonStyle.red)
+	async def close(self, interaction: discord.Interaction, button: ui.Button):
 
-		await self.disable_all()
+		await self.disable_all(msg="Bye-bye")
 		self.value = False
 		self.stop()
 		await interaction.response.defer()
+		await asyncio.sleep(2)
+		await self.msg.delete()
 
 	async def interaction_check(self, interaction) -> bool:
 		if interaction.user.id != self.author:
@@ -186,9 +202,9 @@ class fmProfile(ui.View):
 
 class LastFM(commands.Cog):
 
-	def __init__(self, ce):
+	def __init__(self, bot):
 		super().__init__()
-		self.ce = ce
+		self.bot = bot
 
 	@app_commands.command(name='lastfm', description='Open a lastfm profile menu')
 	@app_commands.describe(user="The user's vanity or discord mention if they linked their account",
@@ -205,7 +221,7 @@ class LastFM(commands.Cog):
 					g = "You haven't"
 
 			try:
-				social_data = await Data.load_db(table="profiles", value=user_id)
+				social_data = await Data.load_db(table="profiles", id=user_id)
 				if social_data['lastfm'] is None:
 					raise Exception
 				user = social_data['lastfm']
@@ -220,5 +236,5 @@ class LastFM(commands.Cog):
 		view.msg = await interaction.original_response()
 
 
-async def setup(ce):
-	await ce.add_cog(LastFM(ce))
+async def setup(bot):
+	await bot.add_cog(LastFM(bot))
