@@ -1,4 +1,3 @@
-import sqlite3
 import discord
 import aiosqlite
 import time
@@ -7,13 +6,12 @@ import datetime
 from data import Data
 from discord import app_commands
 from discord.ext import commands
-from discord.app_commands import Choice
 
 
 class Rep(commands.Cog):
-	def __init__(self, ce):
+	def __init__(self, bot):
 		super().__init__()
-		self.ce = ce
+		self.bot = bot
 
 	@app_commands.command(name="rep", description="Tatsu copied me")
 	async def rep(self, inter, user:discord.User):
@@ -26,23 +24,23 @@ class Rep(commands.Cog):
 
 		async with aiosqlite.connect('data/data.db') as db:
 			db.row_factory = aiosqlite.Row
-			muser = await Data.load_db(table="rep", value=user.id)
+			muser = await Data.load_db(table="rep", id=user.id)
 			if muser is None:
-				await db.execute("INSERT INTO rep (user_id, rep, time) VALUES (?, 0, 0)", (user.id,))
+				await db.execute("INSERT INTO rep (id, rep, time) VALUES (?, 0, 0)", (user.id,))
 				await db.commit()
-				muser = await Data.load_db(table="rep", value=user.id)
+				muser = await Data.load_db(table="rep", id=user.id)
 		
-			ruser = await Data.load_db(table="rep", value=inter.user.id)
+			ruser = await Data.load_db(table="rep", id=inter.user.id)
 			if ruser is None:
-				await db.execute("INSERT INTO rep (user_id, rep, time) VALUES (?, 0, 0)", (inter.user.id,))
+				await db.execute("INSERT INTO rep (id, rep, time) VALUES (?, 0, 0)", (inter.user.id,))
 				await db.commit()
-				ruser = await Data.load_db(table="rep", value=inter.user.id)
+				ruser = await Data.load_db(table="rep", id=inter.user.id)
 
 			expiration_time = datetime.datetime.fromtimestamp(ruser['time']) + datetime.timedelta(hours=12)
 			
 			if expiration_time < datetime.datetime.now() or inter.user.id == 809275012980539453:
-				await db.execute("UPDATE rep SET rep=? WHERE user_id=?", (muser['rep'] + 1, user.id))
-				await db.execute("UPDATE rep SET time=? WHERE user_id=?", (int(time.time()), inter.user.id))
+				await db.execute("UPDATE rep SET rep=? WHERE id=?", (muser['rep'] + 1, user.id))
+				await db.execute("UPDATE rep SET time=? WHERE id=?", (int(time.time()), inter.user.id))
 				await db.commit()
 				await inter.response.send_message(f"You gave {user.mention} a reputation point!!")
 			else:
@@ -50,5 +48,5 @@ class Rep(commands.Cog):
 
 
 
-async def setup(ce):
-	await ce.add_cog(Rep(ce))
+async def setup(bot):
+	await bot.add_cog(Rep(bot))
