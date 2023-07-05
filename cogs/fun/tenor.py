@@ -5,15 +5,15 @@ import aiohttp
 import random
 import toml
 
-from data.__init__ import config
+from data import config
 
 TENOR = config["TENOR"]
 
 
 class Tenor(commands.Cog):
-	def __init__(self, ce):
+	def __init__(self, bot):
 		super().__init__()
-		self.ce = ce
+		self.bot = bot
 
 	@app_commands.command(name="catgif", description="Random Tenor cat gif")
 	async def catgif(self, interaction):
@@ -61,5 +61,5 @@ class Tenor(commands.Cog):
 		await inter.response.send_message("https://github.com/razyness/catness/raw/main/woody.jpg")
 
 
-async def setup(ce):
-	await ce.add_cog(Tenor(ce))
+async def setup(bot):
+	await bot.add_cog(Tenor(bot))
